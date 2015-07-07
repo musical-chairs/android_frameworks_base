@@ -72,6 +72,7 @@ import android.service.dreams.DreamService;
 import android.service.dreams.IDreamManager;
 import android.speech.RecognizerIntent;
 import android.telecom.TelecomManager;
+import android.text.Html;
 import android.service.gesture.EdgeGestureManager;
 import com.android.internal.os.DeviceKeyHandler;
 
@@ -130,6 +131,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 import java.lang.reflect.Constructor;
 
 import static android.view.WindowManager.LayoutParams.*;
@@ -6557,6 +6559,19 @@ public class PhoneWindowManager implements WindowManagerPolicy {
 
     ProgressDialog mBootMsgDialog = null;
 
+
+    /**
+     * name of package currently being dex optimized
+     * as shown through this.showBootMessage(msg, always);
+     */
+    static String currentPackageName;
+    public void setPackageName(String pkgName) {
+        if (pkgName == null) {
+            pkgName = "stop.looking.at.me.swan";
+        }
+        this.currentPackageName = pkgName;
+    }
+
     /** {@inheritDoc} */
     @Override
     public void showBootMessage(final CharSequence msg, final boolean always) {
@@ -6571,7 +6586,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                             PackageManager.FEATURE_TELEVISION)) {
                         theme = com.android.internal.R.style.Theme_Leanback_Dialog_Alert;
                     } else {
-                        theme = 0;
+                        theme = com.android.internal.R.style.Theme_Material_Dialog_Alert;
                     }
 
                     mBootMsgDialog = new ProgressDialog(mContext, theme) {
@@ -6616,7 +6631,21 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                     mBootMsgDialog.setCancelable(false);
                     mBootMsgDialog.show();
                 }
-                mBootMsgDialog.setMessage(msg);
+				// Only display the current package name if the main message says "Optimizing app N of M".
+				// We don't want to do this when the message says "Starting apps" or "Finishing boot", etc.
+				if (always && (currentPackageName != null)) {
+
+					// Calculate random text color
+					Random rand = new Random();
+					String randomColor = Integer.toHexString(rand.nextInt(0xFFFFFF) & 0xFCFCFC );
+					mBootMsgDialog.setMessage(Html.fromHtml(msg +
+														"<br><b><font color=\"#" + randomColor + "\">" +
+														currentPackageName +
+														"</font></b>"));
+                }
+                else {
+                    mBootMsgDialog.setMessage(msg);
+                }
             }
         });
     }
